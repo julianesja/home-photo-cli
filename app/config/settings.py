@@ -8,5 +8,5 @@ SETTINGS = {
 
 # Extensiones de imagen soportadas para la tarea IMG-01
 SUPPORTED_IMAGE_EXTENSIONS = {
-    '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp'
+    '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp', '.heic', '.heif'
 } 

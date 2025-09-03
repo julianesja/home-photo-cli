@@ -92,6 +92,12 @@ class FaceEmbeddingRepository(BaseRepository[FaceEmbedding]):
             self.model, Photo.filename, Photo.path
         ).join(Photo).filter_by(person_id=person_id).all()
 
+    def exists_embedding(self, person_id: int, photo_id: int) -> bool:
+        """Verifica si existe un embedding para una persona en una foto específica."""
+        return self.session.query(self.model).filter_by(
+            person_id=person_id, photo_id=photo_id
+        ).first() is not None
+
     def find_similar_embeddings(self, target_embedding: List[float], threshold: float = 0.6) -> List[FaceEmbedding]:
         """
         Encuentra embeddings similares al target usando distancia euclidiana.

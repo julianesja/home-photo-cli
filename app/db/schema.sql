@@ -8,7 +8,9 @@ CREATE TABLE photos (
     filename VARCHAR(255) NOT NULL,
     path TEXT NOT NULL,
     hash CHAR(64) NOT NULL, -- SHA256
+    phash VARCHAR(32), -- Hash perceptual (pHash)
     processed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_new BOOLEAN NOT NULL DEFAULT TRUE,
     UNIQUE(hash)
 );
 

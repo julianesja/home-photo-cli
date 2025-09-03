@@ -7,6 +7,9 @@ import os
 import hashlib
 from pathlib import Path
 from typing import List, Dict, Generator
+from PIL import Image
+import pillow_heif
+import imagehash
 
 # Importar configuración y repositorios
 from app.config.settings import SUPPORTED_IMAGE_EXTENSIONS
@@ -25,6 +28,28 @@ def calculate_file_hash(file_path: Path) -> str:
         print(f"Error calculando hash de {file_path}: {e}")
         return ""
 
+def calculate_phash(file_path: Path) -> str:
+    """Calcula el hash perceptual (pHash) de una imagen."""
+    try:
+        if file_path.suffix.lower() in {'.heic', '.heif'}:
+            heif_file = pillow_heif.read_heif(str(file_path))
+            if not heif_file.data:
+                print(f"Error: HEIF file {file_path} no tiene datos de imagen.")
+                return ""
+            img = Image.frombytes(
+                heif_file.mode,
+                heif_file.size,
+                heif_file.data,
+                "raw"
+            )
+        else:
+            img = Image.open(file_path)
+        phash = imagehash.phash(img)
+        return str(phash)
+    except Exception as e:
+        print(f"Error calculando phash de {file_path}: {e}")
+        return ""
+
 def is_valid_image_file(file_path: Path) -> bool:
     """Verifica si un archivo es una imagen válida."""
     # Verificar extensión
@@ -39,6 +64,25 @@ def is_valid_image_file(file_path: Path) -> bool:
     try:
         if file_path.stat().st_size == 0:
             return False
+    except Exception:
+        return False
+    
+    # Validar apertura de imagen (incluyendo HEIC)
+    try:
+        if file_path.suffix.lower() in {'.heic', '.heif'}:
+            heif_file = pillow_heif.read_heif(str(file_path))
+            if not heif_file.data:
+                return False
+            img = Image.frombytes(
+                heif_file.mode,
+                heif_file.size,
+                heif_file.data,
+                "raw"
+            )
+            img.verify()
+        else:
+            with Image.open(file_path) as img:
+                img.verify()
     except Exception:
         return False
     
@@ -93,6 +137,12 @@ def scan_images_recursively(root_path: str, photo_repo: PhotoRepository, duplica
         if not file_hash:
             errors += 1
             continue
+
+        # Calcular phash del archivo
+        file_phash = calculate_phash(file_path)
+        if not file_phash:
+            errors += 1
+            continue
         
         # Verificar si ya fue procesado usando el repositorio
         existing_photo = photo_repo.get_by_hash(file_hash)
@@ -128,7 +178,9 @@ def scan_images_recursively(root_path: str, photo_repo: PhotoRepository, duplica
             photo_data = {
                 'filename': file_path.name,
                 'path': current_path,
-                'hash': file_hash
+                'hash': file_hash,
+                'phash': file_phash
+                # 'is_new' no se incluye, así que será True por defecto
             }
             
             new_photo = photo_repo.create(photo_data)
@@ -136,10 +188,13 @@ def scan_images_recursively(root_path: str, photo_repo: PhotoRepository, duplica
             print(f"✅ Imagen registrada: {file_path.name}")
             
             # Agregar al lote actual
+            photo_dict = new_photo.to_dict()
             image_info = {
+                'id': photo_dict['id'],  # Incluir el ID de la foto
                 'filename': file_path.name,
                 'path': current_path,
                 'hash': file_hash,
+                'phash': file_phash,
                 'size': file_path.stat().st_size,
                 'extension': file_path.suffix.lower()
             }

@@ -100,9 +100,10 @@ class DuplicateRepository(BaseRepository[Duplicate]):
         ).outerjoin(self.model, Photo.id == self.model.duplicate_of_id).group_by(Photo.id).all()
 
     def exists_duplicate(self, photo_id: int, duplicate_of_id: int) -> bool:
-        """Verifica si existe un duplicado específico."""
-        return self.session.query(self.model).filter_by(
-            photo_id=photo_id, duplicate_of_id=duplicate_of_id
+        """Verifica si existe un duplicado específico en cualquier orden."""
+        return self.session.query(self.model).filter(
+            ((self.model.photo_id == photo_id) & (self.model.duplicate_of_id == duplicate_of_id)) |
+            ((self.model.photo_id == duplicate_of_id) & (self.model.duplicate_of_id == photo_id))
         ).first() is not None
 
     def get_duplicate_chains(self):

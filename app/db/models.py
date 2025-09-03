@@ -3,7 +3,7 @@ Modelos SQLAlchemy para el organizador de fotos por reconocimiento facial.
 Basado en el esquema SQL definido en schema.sql
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
@@ -25,7 +25,9 @@ class Photo(Base):
     filename = Column(String(255), nullable=False)
     path = Column(Text, nullable=False)
     hash = Column(String(64), nullable=False, unique=True)  # SHA256
+    phash = Column(String(32), nullable=True)  # Hash perceptual (pHash)
     processed_at = Column(DateTime, default=func.now())
+    is_new = Column(Boolean, default=True, nullable=False)
     
     # Relaciones
     people = relationship("PhotoPeople", back_populates="photo", cascade="all, delete-orphan")
@@ -44,6 +46,8 @@ class Photo(Base):
             'filename': self.filename,
             'path': self.path,
             'hash': self.hash,
+            'phash': self.phash,
+            'is_new': self.is_new,
             'processed_at': processed_at.isoformat() if processed_at else None
         }
 
