@@ -8,11 +8,13 @@ import hashlib
 from pathlib import Path
 from typing import List, Dict, Generator
 from PIL import Image
+from app.db.repositories.bucket_repository import BucketRepository
+from app.image.utils import to_webp
 import pillow_heif
 import imagehash
 
 # Importar configuración y repositorios
-from app.config.settings import SUPPORTED_IMAGE_EXTENSIONS
+from app.config.settings import settings
 from app.db.repositories import PhotoRepository, DuplicateRepository
 from app.db.connection import SessionLocal
 
@@ -53,7 +55,7 @@ def calculate_phash(file_path: Path) -> str:
 def is_valid_image_file(file_path: Path) -> bool:
     """Verifica si un archivo es una imagen válida."""
     # Verificar extensión
-    if file_path.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+    if file_path.suffix.lower() not in settings.supported_extensions:
         return False
     
     # Verificar que el archivo existe y es legible
@@ -175,9 +177,21 @@ def scan_images_recursively(root_path: str, photo_repo: PhotoRepository, duplica
         
         # Registrar la imagen usando el repositorio
         try:
+            bucket_repo = BucketRepository()
+            path_in_bucket = bucket_repo.upload_file(current_path, file_path.suffix.lower())
+            # Leer el archivo como bytes para convertirlo a WebP
+            with open(file_path, 'rb') as f:
+                file_bytes = f.read()
+            web_memory = to_webp(file_bytes)
+            
+            # Convertir BytesIO a bytes
+            web_memory.seek(0)  # Asegurar que estamos al inicio
+            web_bytes = web_memory.read()
+            path_in_bucket_webp = bucket_repo.upload_file_memoria(web_bytes, ".webp")
             photo_data = {
                 'filename': file_path.name,
-                'path': current_path,
+                'path': path_in_bucket,
+                'web_path': path_in_bucket_webp,
                 'hash': file_hash,
                 'phash': file_phash
                 # 'is_new' no se incluye, así que será True por defecto
