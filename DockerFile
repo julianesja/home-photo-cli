@@ -1,0 +1,43 @@
+# Usamos Python 3.10 para compatibilidad con fastembed, dlib y sentence-transformers
+FROM python:3.10-slim AS base
+
+# Evita interacciones
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Actualizamos e instalamos dependencias necesarias del sistema
+# face-recognition requiere dlib → dlib necesita cmake + build-essential
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    libopenblas-dev \
+    liblapack-dev \
+    libx11-dev \
+    libglib2.0-0 \
+    libjpeg-dev \
+    libpng-dev \
+    libturbojpeg0-dev \
+    libtiff5-dev \
+    libheif-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalamos Poetry
+RUN pip install --no-cache-dir poetry
+
+# Creamos directorio de trabajo
+WORKDIR /app
+
+# Copiamos solo los archivos de dependencias primero para aprovechar cache
+COPY pyproject.toml poetry.lock* /app/
+
+# Instalamos dependencias (sin el proyecto)
+RUN poetry install --no-root --no-interaction --no-ansi
+
+# Copiamos el código de la app
+COPY . /app
+
+# Exponemos el puerto (por ejemplo FastAPI)
+EXPOSE 8000
+
+# Comando por defecto
+CMD ["poetry", "run", "uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8080"]

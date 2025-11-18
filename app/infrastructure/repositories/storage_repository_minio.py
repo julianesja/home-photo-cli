@@ -54,3 +54,10 @@ class StorageRepositoryMinio(StorageRepository):
             return True, object_name, ""
         except Exception as e:
             return False, "", f"No se pudo subir el archivo a MinIO {e}"
+    
+    def delete_file(self, path_name):
+        try:
+            self.client.remove_object(self.bucket_name, path_name)
+            return True, ""
+        except Exception as e:
+            return False, f"no se pudo eliminar el archivo {path_name}, del bucket: {self.bucket_name}, {e}"

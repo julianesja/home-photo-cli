@@ -1,8 +1,9 @@
 from typing import Optional
 from app.domain.repositories.photo_repository import PhotoRepository
 from app.infrastructure.repositories.base_repository_orm import BaseRepositoryORM
-from app.infrastructure.db.models import Photo as PhotoTable
+from app.infrastructure.db.models import Photo as PhotoTable, People as PeopleTable
 from app.domain.models.photo import Photo as PhotoModel
+from app.domain.models.people import People as PeopleModel
 from sqlalchemy.orm import Session
 import uuid
 
@@ -17,6 +18,7 @@ class PhotoRepositoryORM(BaseRepositoryORM[PhotoModel], PhotoRepository):
         return None
 
     def create_photo(self, obj: PhotoModel) -> PhotoModel:
+        print("a crear foto")
         photo_table = PhotoTable(
             hash=obj.hash,
             path=obj.path,
@@ -25,4 +27,6 @@ class PhotoRepositoryORM(BaseRepositoryORM[PhotoModel], PhotoRepository):
         )
         self._session.add(photo_table)
         self._session.commit()
-        return PhotoModel(id=photo_table.id, hash=photo_table.hash, path=photo_table.path, path_web=photo_table.path_web)
+        return PhotoModel(
+            id=photo_table.id,
+            hash=photo_table.hash, path=photo_table.path, path_web=photo_table.path_web, people=[])

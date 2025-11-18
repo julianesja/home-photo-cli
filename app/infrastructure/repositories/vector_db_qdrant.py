@@ -46,3 +46,9 @@ class VectorDBQdrant(VectorRepository):
             return True, ids, ""
         except Exception as e:
             return False, None, f"Error al buscar los IDs:"
+    
+    def delete_by_id(self, id: str):
+        self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=[id]
+        )
